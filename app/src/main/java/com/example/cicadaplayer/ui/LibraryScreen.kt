@@ -11,9 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,8 +23,6 @@ import com.example.cicadaplayer.data.Track
 fun LibraryScreen(
     state: PlayerUiState,
     onRefreshLibrary: () -> Unit,
-    onFoldersChanged: (List<String>) -> Unit,
-    onPickFolder: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -37,26 +33,8 @@ fun LibraryScreen(
     ) {
         Text("Library", style = MaterialTheme.typography.headlineMedium)
 
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Folders", fontWeight = FontWeight.Bold)
-                OutlinedButton(onClick = onPickFolder, modifier = Modifier.fillMaxWidth()) {
-                    Text("Select folder")
-                }
-                state.settings.selectedFolders.forEach { folder ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(folder)
-                        TextButton(onClick = {
-                            onFoldersChanged(state.settings.selectedFolders - folder)
-                        }) { Text("Remove") }
-                    }
-                }
-                Button(onClick = onRefreshLibrary, modifier = Modifier.fillMaxWidth()) { Text("Scan and build playlist") }
-            }
+        Button(onClick = onRefreshLibrary, modifier = Modifier.fillMaxWidth()) {
+            Text("Scan and build playlist")
         }
 
         Card(modifier = Modifier.fillMaxWidth()) {

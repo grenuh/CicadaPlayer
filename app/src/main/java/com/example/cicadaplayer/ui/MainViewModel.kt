@@ -44,9 +44,8 @@ class MainViewModel(
         }
     }
 
-    fun refreshLibrary() {
+    fun refreshLibrary(folders: List<String> = uiState.value.settings.selectedFolders) {
         viewModelScope.launch {
-            val folders = uiState.value.settings.selectedFolders
             val playlist = musicLibrary.loadFromFolders(folders)
             _playlist.value = playlist
             playerController.setPlaylistMetadata(playlist.name, playlist.id)
@@ -74,7 +73,7 @@ class MainViewModel(
     fun updateFolders(folders: List<String>) {
         viewModelScope.launch {
             settingsRepository.updateSettings { it.copy(selectedFolders = folders) }
-            refreshLibrary()
+            refreshLibrary(folders)
         }
     }
 
