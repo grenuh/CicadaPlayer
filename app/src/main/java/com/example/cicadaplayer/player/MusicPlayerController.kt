@@ -1,10 +1,11 @@
 package com.example.cicadaplayer.player
 
 import android.content.Context
-import android.media.AudioAttributes
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.cicadaplayer.data.PlaybackState
 import com.example.cicadaplayer.data.Track
@@ -16,8 +17,8 @@ class MusicPlayerController(context: Context) {
     private val player: ExoPlayer = ExoPlayer.Builder(context)
         .setAudioAttributes(
             AudioAttributes.Builder()
-                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
-                .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                .setUsage(C.USAGE_MEDIA)
                 .build(),
             true
         )

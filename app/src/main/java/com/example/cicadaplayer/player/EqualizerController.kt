@@ -7,7 +7,7 @@ class EqualizerController(sessionId: Int) {
 
     fun setBandGain(frequency: Int, gainDb: Short) {
         val targetBand: Short = (0 until equalizer.numberOfBands)
-            .map { band -> band to equalizer.getCenterFreq(band.toShort()) / 1000 }
+            .map { band -> band.toShort() to equalizer.getCenterFreq(band.toShort()) / 1000 }
             .minBy { (_, centerFreq) -> kotlin.math.abs(centerFreq - frequency) }
             .first
         val clampedGain = gainDb.coerceIn(equalizer.bandLevelRange[0], equalizer.bandLevelRange[1])
