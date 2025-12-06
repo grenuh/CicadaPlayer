@@ -58,6 +58,24 @@ fun CicadaPlayerApp(viewModel: MainViewModel) {
         }
     }
 
+    val moveTargetPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri: Uri? ->
+        uri ?: return@rememberLauncherForActivityResult
+        runCatching {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+        }
+        val path = treeUriToFilePath(uri)
+        if (path != null) {
+            viewModel.updateMoveTarget(path)
+        } else {
+            Toast.makeText(context, "Unable to read selected folder", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     MaterialTheme {
         CicadaNavigation(
             navController = navController,
@@ -73,7 +91,8 @@ fun CicadaPlayerApp(viewModel: MainViewModel) {
             onSkipPrevious = { viewModel.skipPrevious() },
             onForget = { viewModel.removeCurrentTrack(); viewModel.skipNext() },
             onDiscard = { viewModel.moveCurrentTrack(); viewModel.skipNext() },
-            onPickFolder = { folderPicker.launch(null) }
+            onPickFolder = { folderPicker.launch(null) },
+            onPickMoveTarget = { moveTargetPicker.launch(null) }
         )
     }
 
@@ -103,6 +122,7 @@ fun CicadaNavigation(
     onForget: () -> Unit,
     onDiscard: () -> Unit,
     onPickFolder: () -> Unit,
+    onPickMoveTarget: () -> Unit,
 ) {
     val destinations = listOf(
         AppDestination("player", Icons.Default.PlayArrow, "Player"),
@@ -135,8 +155,6 @@ fun CicadaNavigation(
                 LibraryScreen(
                     state = state,
                     onRefreshLibrary = onRefreshLibrary,
-                    onFoldersChanged = onFoldersChanged,
-                    onPickFolder = onPickFolder,
                 )
             }
             composable("equalizer") {
@@ -147,8 +165,12 @@ fun CicadaNavigation(
             }
             composable("settings") {
                 SettingsScreen(
+                    selectedFolders = state.settings.selectedFolders,
                     moveTargetDirectory = state.settings.moveTargetDirectory,
-                    onMoveTargetChanged = onMoveTargetChanged
+                    onMoveTargetChanged = onMoveTargetChanged,
+                    onFoldersChanged = onFoldersChanged,
+                    onPickFolder = onPickFolder,
+                    onPickMoveTarget = onPickMoveTarget
                 )
             }
         }
