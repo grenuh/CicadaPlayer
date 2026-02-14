@@ -11,34 +11,22 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.cicadaplayer.util.treeUriToDisplayName
 
 @Composable
 fun SettingsScreen(
     selectedFolders: List<String>,
     moveTargetDirectory: String,
-    onMoveTargetChanged: (String) -> Unit,
     onFoldersChanged: (List<String>) -> Unit,
     onPickFolder: () -> Unit,
     onPickMoveTarget: () -> Unit,
 ) {
-    var moveTarget by remember { mutableStateOf(moveTargetDirectory) }
-
-    LaunchedEffect(moveTargetDirectory) {
-        moveTarget = moveTargetDirectory
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -63,7 +51,7 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(folder, modifier = Modifier.weight(1f))
+                        Text(treeUriToDisplayName(folder), modifier = Modifier.weight(1f))
                         TextButton(onClick = { onFoldersChanged(selectedFolders - folder) }) { Text("Remove") }
                     }
                 }
@@ -74,16 +62,15 @@ fun SettingsScreen(
             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Move target directory", fontWeight = FontWeight.Bold)
                 Text("Folder used when using the discard button.", style = MaterialTheme.typography.bodyMedium)
-                Button(onClick = onPickMoveTarget, modifier = Modifier.fillMaxWidth()) {
-                    Text("Select directory")
+                if (moveTargetDirectory.isNotBlank()) {
+                    Text(
+                        treeUriToDisplayName(moveTargetDirectory),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
-                OutlinedTextField(
-                    value = moveTarget,
-                    onValueChange = { moveTarget = it },
-                    label = { Text("Directory path") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Button(onClick = { onMoveTargetChanged(moveTarget) }) { Text("Save target") }
+                Button(onClick = onPickMoveTarget, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (moveTargetDirectory.isBlank()) "Select directory" else "Change directory")
+                }
             }
         }
     }

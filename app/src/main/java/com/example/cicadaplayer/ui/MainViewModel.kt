@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -23,16 +24,19 @@ class MainViewModel(
 
     private val _playlist = MutableStateFlow<Playlist?>(null)
     private val _playbackState: StateFlow<PlaybackState> = playerController.state
+    private val _isScanning = MutableStateFlow(false)
 
     val uiState: StateFlow<PlayerUiState> = combine(
         settingsRepository.settings,
         _playlist,
         _playbackState,
-    ) { settings, playlist, playback ->
+        _isScanning,
+    ) { settings, playlist, playback, isScanning ->
         PlayerUiState(
             settings = settings,
             playlist = playlist,
-            playback = playback.copy(currentPlaylist = playlist ?: playback.currentPlaylist)
+            playback = playback.copy(currentPlaylist = playlist ?: playback.currentPlaylist),
+            isScanning = isScanning,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlayerUiState())
 
@@ -42,14 +46,33 @@ class MainViewModel(
                 playerController.setVolume(settings.playbackVolume)
             }
         }
+        viewModelScope.launch {
+            val tracks = settingsRepository.playlist.first()
+            if (tracks.isNotEmpty()) {
+                val playlist = Playlist(
+                    id = "persisted",
+                    name = "Library",
+                    tracks = tracks
+                )
+                _playlist.value = playlist
+                playerController.setPlaylistMetadata(playlist.name, playlist.id)
+                playerController.loadPlaylist(playlist.tracks)
+            }
+        }
     }
 
     fun refreshLibrary(folders: List<String> = uiState.value.settings.selectedFolders) {
         viewModelScope.launch {
-            val playlist = musicLibrary.loadFromFolders(folders)
-            _playlist.value = playlist
-            playerController.setPlaylistMetadata(playlist.name, playlist.id)
-            playerController.loadPlaylist(playlist.tracks)
+            _isScanning.value = true
+            try {
+                val playlist = musicLibrary.loadFromFolders(folders)
+                _playlist.value = playlist
+                playerController.setPlaylistMetadata(playlist.name, playlist.id)
+                playerController.loadPlaylist(playlist.tracks)
+                settingsRepository.savePlaylist(playlist.tracks)
+            } finally {
+                _isScanning.value = false
+            }
         }
     }
 
@@ -102,6 +125,7 @@ class MainViewModel(
             val updated = musicLibrary.removeTrackFromPlaylist(playlist, current)
             _playlist.value = updated
             playerController.loadPlaylist(updated.tracks)
+            settingsRepository.savePlaylist(updated.tracks)
         }
     }
 
@@ -115,6 +139,16 @@ class MainViewModel(
         }
     }
 
+    fun shufflePlaylist() {
+        val playlist = _playlist.value ?: return
+        viewModelScope.launch {
+            val shuffled = playlist.copy(tracks = playlist.tracks.shuffled())
+            _playlist.value = shuffled
+            playerController.loadPlaylist(shuffled.tracks)
+            settingsRepository.savePlaylist(shuffled.tracks)
+        }
+    }
+
     fun refreshProgress() {
         playerController.refreshProgress()
     }
@@ -124,4 +158,5 @@ data class PlayerUiState(
     val settings: PlayerSettings = PlayerSettings(),
     val playlist: Playlist? = null,
     val playback: PlaybackState = PlaybackState(),
+    val isScanning: Boolean = false,
 )

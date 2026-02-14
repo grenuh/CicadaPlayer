@@ -34,6 +34,7 @@ fun PlayerScreen(
     onVolumeChange: (Float) -> Unit,
     onForget: () -> Unit,
     onDiscard: () -> Unit,
+    onShuffle: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -57,7 +58,7 @@ fun PlayerScreen(
             volume = state.settings.playbackVolume,
             onVolumeChange = onVolumeChange,
         )
-        FdButtons(onForget = onForget, onDiscard = onDiscard)
+        FdButtons(onForget = onForget, onDiscard = onDiscard, onShuffle = onShuffle)
     }
 }
 
@@ -102,7 +103,7 @@ fun PlaybackControls(
 }
 
 @Composable
-fun FdButtons(onForget: () -> Unit, onDiscard: () -> Unit) {
+fun FdButtons(onForget: () -> Unit, onDiscard: () -> Unit, onShuffle: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Button(
             onClick = onForget,
@@ -120,6 +121,15 @@ fun FdButtons(onForget: () -> Unit, onDiscard: () -> Unit) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("D", style = MaterialTheme.typography.headlineLarge)
                 Text("Move then skip")
+            }
+        }
+        Button(
+            onClick = onShuffle,
+            modifier = Modifier.weight(1f)
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("R", style = MaterialTheme.typography.headlineLarge)
+                Text("Shuffle")
             }
         }
     }

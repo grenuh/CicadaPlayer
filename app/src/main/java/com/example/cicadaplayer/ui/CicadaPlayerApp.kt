@@ -2,7 +2,6 @@ package com.example.cicadaplayer.ui
 
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -29,7 +28,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.cicadaplayer.util.treeUriToFilePath
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -49,13 +47,8 @@ fun CicadaPlayerApp(viewModel: MainViewModel) {
                 Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             )
         }
-        val path = treeUriToFilePath(uri)
-        if (path != null) {
-            val updated = (state.settings.selectedFolders + path).distinct()
-            viewModel.updateFolders(updated)
-        } else {
-            Toast.makeText(context, "Unable to read selected folder", Toast.LENGTH_SHORT).show()
-        }
+        val updated = (state.settings.selectedFolders + uri.toString()).distinct()
+        viewModel.updateFolders(updated)
     }
 
     val moveTargetPicker = rememberLauncherForActivityResult(
@@ -68,12 +61,7 @@ fun CicadaPlayerApp(viewModel: MainViewModel) {
                 Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             )
         }
-        val path = treeUriToFilePath(uri)
-        if (path != null) {
-            viewModel.updateMoveTarget(path)
-        } else {
-            Toast.makeText(context, "Unable to read selected folder", Toast.LENGTH_SHORT).show()
-        }
+        viewModel.updateMoveTarget(uri.toString())
     }
 
     MaterialTheme {
@@ -85,18 +73,16 @@ fun CicadaPlayerApp(viewModel: MainViewModel) {
             onRefreshLibrary = { viewModel.refreshLibrary() },
             onVolumeChange = { viewModel.setVolume(it) },
             onFoldersChanged = { viewModel.updateFolders(it) },
-            onMoveTargetChanged = { viewModel.updateMoveTarget(it) },
             onEqualizerChange = { freq, gain -> viewModel.updateEqualizerBand(freq, gain) },
             onSkipNext = { viewModel.skipNext() },
             onSkipPrevious = { viewModel.skipPrevious() },
             onForget = { viewModel.removeCurrentTrack(); viewModel.skipNext() },
             onDiscard = { viewModel.moveCurrentTrack(); viewModel.skipNext() },
             onPickFolder = { folderPicker.launch(null) },
-            onPickMoveTarget = { moveTargetPicker.launch(null) }
+            onPickMoveTarget = { moveTargetPicker.launch(null) },
+            onShuffle = { viewModel.shufflePlaylist() }
         )
     }
-
-    LaunchedEffect(Unit) { viewModel.refreshLibrary() }
 
     LaunchedEffect(Unit) {
         while (isActive) {
@@ -115,7 +101,6 @@ fun CicadaNavigation(
     onRefreshLibrary: () -> Unit,
     onVolumeChange: (Float) -> Unit,
     onFoldersChanged: (List<String>) -> Unit,
-    onMoveTargetChanged: (String) -> Unit,
     onEqualizerChange: (Int, Short) -> Unit,
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit,
@@ -123,6 +108,7 @@ fun CicadaNavigation(
     onDiscard: () -> Unit,
     onPickFolder: () -> Unit,
     onPickMoveTarget: () -> Unit,
+    onShuffle: () -> Unit,
 ) {
     val destinations = listOf(
         AppDestination("player", Icons.Default.PlayArrow, "Player"),
@@ -149,6 +135,7 @@ fun CicadaNavigation(
                     onVolumeChange = onVolumeChange,
                     onForget = onForget,
                     onDiscard = onDiscard,
+                    onShuffle = onShuffle,
                 )
             }
             composable("library") {
@@ -167,7 +154,6 @@ fun CicadaNavigation(
                 SettingsScreen(
                     selectedFolders = state.settings.selectedFolders,
                     moveTargetDirectory = state.settings.moveTargetDirectory,
-                    onMoveTargetChanged = onMoveTargetChanged,
                     onFoldersChanged = onFoldersChanged,
                     onPickFolder = onPickFolder,
                     onPickMoveTarget = onPickMoveTarget

@@ -3,13 +3,16 @@ package com.example.cicadaplayer.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,29 +27,56 @@ fun LibraryScreen(
     state: PlayerUiState,
     onRefreshLibrary: () -> Unit,
 ) {
-    Column(
+    val tracks = state.playlist?.tracks ?: emptyList()
+
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Library", style = MaterialTheme.typography.headlineMedium)
-
-        Button(onClick = onRefreshLibrary, modifier = Modifier.fillMaxWidth()) {
-            Text("Scan and build playlist")
+        item {
+            Text("Library", style = MaterialTheme.typography.headlineMedium)
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Songs", fontWeight = FontWeight.Bold)
-                if (state.playlist?.tracks?.isNotEmpty() == true) {
-                    state.playlist.tracks.forEachIndexed { index, track ->
-                        TrackRow(index = index, track = track)
-                    }
-                } else {
-                    Text("No songs loaded. Select folders and scan to build your playlist.")
+        item {
+            Button(
+                onClick = onRefreshLibrary,
+                enabled = !state.isScanning,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (state.isScanning) "Scanning..." else "Scan and build playlist")
+            }
+        }
+
+        if (state.isScanning) {
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Scanning folders for music...")
                 }
+            }
+        }
+
+        item {
+            Text(
+                "Songs (${tracks.size})",
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+
+        if (tracks.isNotEmpty()) {
+            itemsIndexed(tracks) { index, track ->
+                TrackRow(index = index, track = track)
+            }
+        } else if (!state.isScanning) {
+            item {
+                Text("No songs loaded. Select folders and scan to build your playlist.")
             }
         }
     }
@@ -64,6 +94,5 @@ fun TrackRow(index: Int, track: Track) {
             Text(track.title, style = MaterialTheme.typography.bodyLarge)
             Text(track.artist ?: "Unknown artist", style = MaterialTheme.typography.bodyMedium)
         }
-        Text("${track.durationMs / 1000}s", style = MaterialTheme.typography.bodySmall)
     }
 }
