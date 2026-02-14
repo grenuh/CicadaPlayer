@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -35,6 +36,8 @@ fun PlayerScreen(
     onForget: () -> Unit,
     onDiscard: () -> Unit,
     onShuffle: () -> Unit,
+    removeOnEnd: Boolean,
+    onRemoveOnEndChange: (Boolean) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -59,6 +62,14 @@ fun PlayerScreen(
             onVolumeChange = onVolumeChange,
         )
         FdButtons(onForget = onForget, onDiscard = onDiscard, onShuffle = onShuffle)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Remove on end")
+            Switch(checked = removeOnEnd, onCheckedChange = onRemoveOnEndChange)
+        }
     }
 }
 

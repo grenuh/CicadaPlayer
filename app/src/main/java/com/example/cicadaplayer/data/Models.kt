@@ -28,6 +28,7 @@ data class PlayerSettings(
     val moveTargetDirectory: String = "",
     val equalizerBands: Map<Int, Short> = mapOf(60 to 0, 230 to 0, 910 to 0, 3600 to 0, 14000 to 0),
     val playbackVolume: Float = 0.5f,
+    val removeOnEnd: Boolean = false,
 )
 
 /** UI state representing the current playback position. */

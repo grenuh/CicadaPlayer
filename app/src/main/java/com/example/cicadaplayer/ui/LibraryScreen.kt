@@ -1,5 +1,6 @@
 package com.example.cicadaplayer.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +27,7 @@ import com.example.cicadaplayer.data.Track
 fun LibraryScreen(
     state: PlayerUiState,
     onRefreshLibrary: () -> Unit,
+    onTrackTap: (Int) -> Unit,
 ) {
     val tracks = state.playlist?.tracks ?: emptyList()
 
@@ -72,7 +74,7 @@ fun LibraryScreen(
 
         if (tracks.isNotEmpty()) {
             itemsIndexed(tracks) { index, track ->
-                TrackRow(index = index, track = track)
+                TrackRow(index = index, track = track, onClick = { onTrackTap(index) })
             }
         } else if (!state.isScanning) {
             item {
@@ -83,9 +85,9 @@ fun LibraryScreen(
 }
 
 @Composable
-fun TrackRow(index: Int, track: Track) {
+fun TrackRow(index: Int, track: Track, onClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

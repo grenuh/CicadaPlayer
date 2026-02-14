@@ -3,12 +3,16 @@ package com.example.cicadaplayer.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cicadaplayer.data.MusicLibrary
+import com.example.cicadaplayer.data.MusicLibrary.ScanEvent
 import com.example.cicadaplayer.data.PlaybackState
 import com.example.cicadaplayer.data.PlayerSettings
 import com.example.cicadaplayer.data.Playlist
 import com.example.cicadaplayer.data.SettingsRepository
+import com.example.cicadaplayer.data.Track
 import com.example.cicadaplayer.player.MusicPlayerController
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -26,6 +30,9 @@ class MainViewModel(
     private val _playbackState: StateFlow<PlaybackState> = playerController.state
     private val _isScanning = MutableStateFlow(false)
 
+    private val _toastMessages = MutableSharedFlow<String>()
+    val toastMessages: SharedFlow<String> = _toastMessages
+
     val uiState: StateFlow<PlayerUiState> = combine(
         settingsRepository.settings,
         _playlist,
@@ -40,8 +47,14 @@ class MainViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlayerUiState())
 
+    private var previousTrack: Track? = null
+
     init {
         viewModelScope.launch {
+            val initial = settingsRepository.settings.first()
+            initial.equalizerBands.forEach { (freq, gain) ->
+                playerController.setEqualizerBand(freq, gain)
+            }
             settingsRepository.settings.collect { settings ->
                 playerController.setVolume(settings.playbackVolume)
             }
@@ -59,20 +72,45 @@ class MainViewModel(
                 playerController.loadPlaylist(playlist.tracks)
             }
         }
+        viewModelScope.launch {
+            _playbackState.collect { playback ->
+                val current = playback.currentTrack
+                val prev = previousTrack
+                if (prev != null && current != null && prev.uri != current.uri) {
+                    if (uiState.value.settings.removeOnEnd) {
+                        removeTrack(prev)
+                    }
+                }
+                previousTrack = current
+            }
+        }
     }
 
     fun refreshLibrary(folders: List<String> = uiState.value.settings.selectedFolders) {
         viewModelScope.launch {
             _isScanning.value = true
-            try {
-                val playlist = musicLibrary.loadFromFolders(folders)
-                _playlist.value = playlist
-                playerController.setPlaylistMetadata(playlist.name, playlist.id)
-                playerController.loadPlaylist(playlist.tracks)
-                settingsRepository.savePlaylist(playlist.tracks)
-            } finally {
-                _isScanning.value = false
+            val playlistId = java.util.UUID.randomUUID().toString()
+            val playlist = Playlist(id = playlistId, name = "Quick Mix", tracks = emptyList())
+            _playlist.value = playlist
+            playerController.setPlaylistMetadata(playlist.name, playlist.id)
+            playerController.clearPlaylist()
+
+            val tracks = mutableListOf<Track>()
+            musicLibrary.scanFolders(folders).collect { event ->
+                when (event) {
+                    is ScanEvent.TrackFound -> {
+                        tracks.add(event.track)
+                        _playlist.value = _playlist.value?.copy(tracks = tracks.toList())
+                        playerController.addTrack(event.track)
+                    }
+                    is ScanEvent.Error -> {
+                        _toastMessages.emit(event.message)
+                    }
+                }
             }
+
+            settingsRepository.savePlaylist(tracks)
+            _isScanning.value = false
         }
     }
 
@@ -107,6 +145,7 @@ class MainViewModel(
     }
 
     fun updateEqualizerBand(freq: Int, gain: Short) {
+        playerController.setEqualizerBand(freq, gain)
         viewModelScope.launch {
             settingsRepository.updateSettings {
                 it.copy(equalizerBands = it.equalizerBands.toMutableMap().apply { put(freq, gain) })
@@ -118,14 +157,25 @@ class MainViewModel(
 
     fun skipPrevious() = playerController.skipPrevious()
 
+    fun playTrackAt(index: Int) = playerController.playAt(index)
+
     fun removeCurrentTrack() {
         val current = _playbackState.value.currentTrack ?: return
+        removeTrack(current)
+    }
+
+    private fun removeTrack(track: Track) {
         val playlist = _playlist.value ?: return
         viewModelScope.launch {
-            val updated = musicLibrary.removeTrackFromPlaylist(playlist, current)
+            val updated = musicLibrary.removeTrackFromPlaylist(playlist, track)
             _playlist.value = updated
-            playerController.loadPlaylist(updated.tracks)
             settingsRepository.savePlaylist(updated.tracks)
+        }
+    }
+
+    fun toggleRemoveOnEnd(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateSettings { it.copy(removeOnEnd = enabled) }
         }
     }
 

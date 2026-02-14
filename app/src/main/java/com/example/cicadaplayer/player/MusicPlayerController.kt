@@ -24,6 +24,8 @@ class MusicPlayerController(context: Context) {
         )
         .build()
 
+    private val equalizerController = EqualizerController(player.audioSessionId)
+
     private val _state = MutableStateFlow(PlaybackState())
     val state: StateFlow<PlaybackState> = _state
 
@@ -81,6 +83,41 @@ class MusicPlayerController(context: Context) {
         }
     }
 
+    fun clearPlaylist() {
+        player.clearMediaItems()
+        _state.update {
+            it.copy(
+                currentPlaylist = it.currentPlaylist?.copy(tracks = emptyList()),
+                currentTrack = null,
+                queueIndex = 0,
+            )
+        }
+    }
+
+    fun addTrack(track: Track) {
+        val mediaItem = MediaItem.Builder()
+            .setUri(track.uri)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(track.title)
+                    .setAlbumTitle(track.album)
+                    .setArtist(track.artist)
+                    .build()
+            )
+            .build()
+        player.addMediaItem(mediaItem)
+        if (player.mediaItemCount == 1) {
+            player.prepare()
+        }
+        _state.update { state ->
+            val updatedTracks = (state.currentPlaylist?.tracks ?: emptyList()) + track
+            state.copy(
+                currentPlaylist = state.currentPlaylist?.copy(tracks = updatedTracks),
+                currentTrack = state.currentTrack ?: track,
+            )
+        }
+    }
+
     fun play() {
         player.playWhenReady = true
         player.play()
@@ -110,11 +147,28 @@ class MusicPlayerController(context: Context) {
         _state.update { it.copy(queueIndex = player.currentMediaItemIndex) }
     }
 
+    fun playAt(index: Int) {
+        player.seekToDefaultPosition(index)
+        player.playWhenReady = true
+        player.play()
+        _state.update { state ->
+            state.copy(
+                currentTrack = state.currentPlaylist?.tracks?.getOrNull(index),
+                queueIndex = index,
+            )
+        }
+    }
+
     fun refreshProgress() {
         _state.update { it.copy(currentPosition = player.currentPosition, duration = player.duration) }
     }
 
+    fun setEqualizerBand(frequency: Int, gainDb: Short) {
+        equalizerController.setBandGain(frequency, gainDb)
+    }
+
     fun clear() {
+        equalizerController.release()
         player.stop()
         player.release()
     }

@@ -45,7 +45,7 @@ fun EqualizerSlider(frequency: Int, gain: Short, onEqualizerChange: (Int, Short)
         Slider(
             value = gain.toFloat(),
             onValueChange = { onEqualizerChange(frequency, it.toInt().toShort()) },
-            valueRange = -10f..10f
+            valueRange = -15f..15f
         )
     }
 }

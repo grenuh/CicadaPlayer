@@ -2,6 +2,7 @@ package com.example.cicadaplayer.ui
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -80,7 +81,9 @@ fun CicadaPlayerApp(viewModel: MainViewModel) {
             onDiscard = { viewModel.moveCurrentTrack(); viewModel.skipNext() },
             onPickFolder = { folderPicker.launch(null) },
             onPickMoveTarget = { moveTargetPicker.launch(null) },
-            onShuffle = { viewModel.shufflePlaylist() }
+            onShuffle = { viewModel.shufflePlaylist() },
+            onTrackTap = { index -> viewModel.playTrackAt(index) },
+            onRemoveOnEndChange = { viewModel.toggleRemoveOnEnd(it) }
         )
     }
 
@@ -88,6 +91,12 @@ fun CicadaPlayerApp(viewModel: MainViewModel) {
         while (isActive) {
             viewModel.refreshProgress()
             delay(500)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.toastMessages.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
     }
 }
@@ -109,6 +118,8 @@ fun CicadaNavigation(
     onPickFolder: () -> Unit,
     onPickMoveTarget: () -> Unit,
     onShuffle: () -> Unit,
+    onTrackTap: (Int) -> Unit,
+    onRemoveOnEndChange: (Boolean) -> Unit,
 ) {
     val destinations = listOf(
         AppDestination("player", Icons.Default.PlayArrow, "Player"),
@@ -136,12 +147,22 @@ fun CicadaNavigation(
                     onForget = onForget,
                     onDiscard = onDiscard,
                     onShuffle = onShuffle,
+                    removeOnEnd = state.settings.removeOnEnd,
+                    onRemoveOnEndChange = onRemoveOnEndChange,
                 )
             }
             composable("library") {
                 LibraryScreen(
                     state = state,
                     onRefreshLibrary = onRefreshLibrary,
+                    onTrackTap = { index ->
+                        onTrackTap(index)
+                        navController.navigate("player") {
+                            launchSingleTop = true
+                            restoreState = true
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        }
+                    },
                 )
             }
             composable("equalizer") {
