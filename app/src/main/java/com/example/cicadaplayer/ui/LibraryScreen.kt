@@ -92,7 +92,14 @@ fun TrackRow(index: Int, track: Track) {
         Text("${index + 1}", fontWeight = FontWeight.Bold)
         Column(modifier = Modifier.weight(1f)) {
             Text(track.title, style = MaterialTheme.typography.bodyLarge)
-            Text(track.artist ?: "Unknown artist", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                buildString {
+                    append(track.fileFormat)
+                    if (track.bitrateKbps > 0) append(" \u00B7 ${track.bitrateKbps} kbps")
+                    if (track.fileSizeMb > 0f) append(" \u00B7 ${"%.1f".format(track.fileSizeMb)} MB")
+                },
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }

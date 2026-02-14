@@ -1,6 +1,7 @@
 package com.example.cicadaplayer.data
 
 import android.content.Context
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
@@ -20,10 +21,6 @@ class MusicLibrary(private val context: Context) {
         Playlist(id = UUID.randomUUID().toString(), name = "Quick Mix", tracks = tracks)
     }
 
-    /**
-     * Single ContentResolver query per folder. Skips MediaMetadataRetriever
-     * entirely — uses display name as title. ExoPlayer reads metadata on playback.
-     */
     private fun listAudioFiles(treeUri: Uri): List<Track> {
         val docId = DocumentsContract.getTreeDocumentId(treeUri)
         val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, docId)
@@ -33,11 +30,13 @@ class MusicLibrary(private val context: Context) {
             DocumentsContract.Document.COLUMN_DOCUMENT_ID,
             DocumentsContract.Document.COLUMN_DISPLAY_NAME,
             DocumentsContract.Document.COLUMN_MIME_TYPE,
+            DocumentsContract.Document.COLUMN_SIZE,
         )
 
         context.contentResolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
             val idCol = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
             val nameCol = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+            val sizeCol = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_SIZE)
 
             while (cursor.moveToNext()) {
                 val name = cursor.getString(nameCol) ?: continue
@@ -46,6 +45,10 @@ class MusicLibrary(private val context: Context) {
 
                 val documentId = cursor.getString(idCol)
                 val documentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, documentId)
+                val sizeBytes = cursor.getLong(sizeCol)
+                val sizeMb = sizeBytes / (1024f * 1024f)
+
+                val bitrateKbps = extractBitrate(documentUri)
 
                 tracks.add(
                     Track(
@@ -55,12 +58,25 @@ class MusicLibrary(private val context: Context) {
                         album = null,
                         durationMs = 0L,
                         filePath = documentUri.toString(),
+                        fileFormat = ext.uppercase(),
+                        bitrateKbps = bitrateKbps,
+                        fileSizeMb = sizeMb,
                     )
                 )
             }
         }
 
         return tracks
+    }
+
+    private fun extractBitrate(uri: Uri): Int {
+        return runCatching {
+            MediaMetadataRetriever().use { mmr ->
+                mmr.setDataSource(context, uri)
+                val bitrate = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
+                (bitrate?.toIntOrNull() ?: 0) / 1000
+            }
+        }.getOrDefault(0)
     }
 
     suspend fun removeTrackFromPlaylist(playlist: Playlist, track: Track): Playlist = withContext(Dispatchers.IO) {

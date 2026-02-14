@@ -10,6 +10,9 @@ data class Track(
     val album: String?,
     val durationMs: Long,
     val filePath: String,
+    val fileFormat: String = "",
+    val bitrateKbps: Int = 0,
+    val fileSizeMb: Float = 0f,
 )
 
 /** Playlist containing an ordered set of tracks. */
