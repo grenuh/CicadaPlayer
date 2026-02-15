@@ -33,6 +33,8 @@ class MainViewModel(
     private val _toastMessages = MutableSharedFlow<String>()
     val toastMessages: SharedFlow<String> = _toastMessages
 
+    val artworkBytes: StateFlow<ByteArray?> = playerController.artworkBytes
+
     val uiState: StateFlow<PlayerUiState> = combine(
         settingsRepository.settings,
         _playlist,

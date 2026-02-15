@@ -12,6 +12,7 @@ import com.example.cicadaplayer.databinding.ScreenPlayerBinding
 @Composable
 fun PlayerScreen(
     state: PlayerUiState,
+    artworkBytes: ByteArray?,
     onPlayPause: () -> Unit,
     onSeek: (Float) -> Unit,
     onSkipNext: () -> Unit,
@@ -20,9 +21,8 @@ fun PlayerScreen(
     onForget: () -> Unit,
     onDiscard: () -> Unit,
 ) {
-    val artBytes = state.playback.artworkBytes
-    val albumBitmap: Bitmap? = remember(artBytes) {
-        artBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+    val albumBitmap: Bitmap? = remember(artworkBytes) {
+        artworkBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
     }
 
     AndroidViewBinding(ScreenPlayerBinding::inflate) {

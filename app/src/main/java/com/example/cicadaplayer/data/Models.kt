@@ -39,5 +39,4 @@ data class PlaybackState(
     val duration: Long = 0L,
     val currentPlaylist: Playlist? = null,
     val queueIndex: Int = 0,
-    val artworkBytes: ByteArray? = null,
 )

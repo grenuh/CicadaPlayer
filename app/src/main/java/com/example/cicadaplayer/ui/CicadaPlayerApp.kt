@@ -36,6 +36,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun CicadaPlayerApp(viewModel: MainViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val artworkBytes by viewModel.artworkBytes.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     val folderPicker = rememberLauncherForActivityResult(
@@ -68,6 +69,7 @@ fun CicadaPlayerApp(viewModel: MainViewModel) {
     MaterialTheme {
         CicadaNavigation(
             state = state,
+            artworkBytes = artworkBytes,
             onPlayPause = { viewModel.togglePlayback() },
             onSeek = { viewModel.seek(it) },
             onRefreshLibrary = { viewModel.refreshLibrary() },
@@ -104,6 +106,7 @@ fun CicadaPlayerApp(viewModel: MainViewModel) {
 @Composable
 fun CicadaNavigation(
     state: PlayerUiState,
+    artworkBytes: ByteArray?,
     onPlayPause: () -> Unit,
     onSeek: (Float) -> Unit,
     onRefreshLibrary: () -> Unit,
@@ -144,6 +147,7 @@ fun CicadaNavigation(
             when (page) {
                 0 -> PlayerScreen(
                     state = state,
+                    artworkBytes = artworkBytes,
                     onPlayPause = onPlayPause,
                     onSeek = onSeek,
                     onSkipNext = onSkipNext,

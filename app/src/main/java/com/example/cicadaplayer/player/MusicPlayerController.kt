@@ -29,6 +29,9 @@ class MusicPlayerController(context: Context) {
     private val _state = MutableStateFlow(PlaybackState())
     val state: StateFlow<PlaybackState> = _state
 
+    private val _artworkBytes = MutableStateFlow<ByteArray?>(null)
+    val artworkBytes: StateFlow<ByteArray?> = _artworkBytes
+
     init {
         player.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -40,7 +43,7 @@ class MusicPlayerController(context: Context) {
             }
 
             override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-                _state.update { it.copy(artworkBytes = mediaMetadata.artworkData) }
+                _artworkBytes.value = mediaMetadata.artworkData
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
