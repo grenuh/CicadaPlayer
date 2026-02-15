@@ -16,9 +16,6 @@ fun PlayerScreen(
     onVolumeChange: (Float) -> Unit,
     onForget: () -> Unit,
     onDiscard: () -> Unit,
-    onShuffle: () -> Unit,
-    removeOnEnd: Boolean,
-    onRemoveOnEndChange: (Boolean) -> Unit,
 ) {
     AndroidViewBinding(ScreenPlayerBinding::inflate) {
         // --- Track card ---
@@ -72,13 +69,5 @@ fun PlayerScreen(
         // --- F / D buttons ---
         btnForget.setOnClickListener { onForget() }
         btnDiscard.setOnClickListener { onDiscard() }
-        btnShuffle.setOnClickListener { onShuffle() }
-
-                      // --- Remove on end switch ---
-         removeOnEndSwitch.setOnCheckedChangeListener(null)
-         removeOnEndSwitch.isChecked = removeOnEnd
-         removeOnEndSwitch.setOnCheckedChangeListener { _, isChecked ->
-                     onRemoveOnEndChange(isChecked)
-                 }
     }
 }

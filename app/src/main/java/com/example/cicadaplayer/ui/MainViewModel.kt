@@ -157,7 +157,10 @@ class MainViewModel(
 
     fun skipPrevious() = playerController.skipPrevious()
 
-    fun playTrackAt(index: Int) = playerController.playAt(index)
+    fun playTrackAt(index: Int) {
+        val track = _playlist.value?.tracks?.getOrNull(index) ?: return
+        playerController.playByUri(track.uri.toString())
+    }
 
     fun removeCurrentTrack() {
         val current = _playbackState.value.currentTrack ?: return

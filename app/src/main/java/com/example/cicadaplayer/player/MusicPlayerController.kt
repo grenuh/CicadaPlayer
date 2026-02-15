@@ -159,6 +159,13 @@ class MusicPlayerController(context: Context) {
         }
     }
 
+    fun playByUri(uri: String) {
+        val index = (0 until player.mediaItemCount).firstOrNull { i ->
+            player.getMediaItemAt(i).localConfiguration?.uri?.toString() == uri
+        } ?: return
+        playAt(index)
+    }
+
     fun refreshProgress() {
         _state.update { it.copy(currentPosition = player.currentPosition, duration = player.duration) }
     }

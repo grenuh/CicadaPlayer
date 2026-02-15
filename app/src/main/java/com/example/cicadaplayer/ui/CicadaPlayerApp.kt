@@ -146,9 +146,6 @@ fun CicadaNavigation(
                     onVolumeChange = onVolumeChange,
                     onForget = onForget,
                     onDiscard = onDiscard,
-                    onShuffle = onShuffle,
-                    removeOnEnd = state.settings.removeOnEnd,
-                    onRemoveOnEndChange = onRemoveOnEndChange,
                 )
             }
             composable("library") {
@@ -163,6 +160,9 @@ fun CicadaNavigation(
                             popUpTo(navController.graph.startDestinationId) { saveState = true }
                         }
                     },
+                    onShuffle = onShuffle,
+                    removeOnEnd = state.settings.removeOnEnd,
+                    onRemoveOnEndChange = onRemoveOnEndChange,
                 )
             }
             composable("equalizer") {

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,57 +28,80 @@ fun LibraryScreen(
     state: PlayerUiState,
     onRefreshLibrary: () -> Unit,
     onTrackTap: (Int) -> Unit,
+    onShuffle: () -> Unit,
+    removeOnEnd: Boolean,
+    onRemoveOnEndChange: (Boolean) -> Unit,
 ) {
     val tracks = state.playlist?.tracks ?: emptyList()
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            Text("Library", style = MaterialTheme.typography.headlineMedium)
-        }
-
-        item {
-            Button(
-                onClick = onRefreshLibrary,
-                enabled = !state.isScanning,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (state.isScanning) "Scanning..." else "Scan and build playlist")
-            }
-        }
-
-        if (state.isScanning) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             item {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Text("Library", style = MaterialTheme.typography.headlineMedium)
+            }
+
+            item {
+                Button(
+                    onClick = onRefreshLibrary,
+                    enabled = !state.isScanning,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    CircularProgressIndicator()
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Scanning folders for music...")
+                    Text(if (state.isScanning) "Scanning..." else "Scan and build playlist")
+                }
+            }
+
+            if (state.isScanning) {
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Scanning folders for music...")
+                    }
+                }
+            }
+
+            item {
+                Text(
+                    "Songs (${tracks.size})",
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            if (tracks.isNotEmpty()) {
+                itemsIndexed(tracks) { index, track ->
+                    TrackRow(index = index, track = track, onClick = { onTrackTap(index) })
+                }
+            } else if (!state.isScanning) {
+                item {
+                    Text("No songs loaded. Select folders and scan to build your playlist.")
                 }
             }
         }
 
-        item {
-            Text(
-                "Songs (${tracks.size})",
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-
-        if (tracks.isNotEmpty()) {
-            itemsIndexed(tracks) { index, track ->
-                TrackRow(index = index, track = track, onClick = { onTrackTap(index) })
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Button(onClick = onShuffle) {
+                Text("Shuffle")
             }
-        } else if (!state.isScanning) {
-            item {
-                Text("No songs loaded. Select folders and scan to build your playlist.")
+            Spacer(modifier = Modifier.weight(1f))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    checked = removeOnEnd,
+                    onCheckedChange = onRemoveOnEndChange
+                )
+                Text("Remove on end")
             }
         }
     }
