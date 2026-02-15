@@ -18,4 +18,5 @@
     <string name="player_shuffle_key">R</string>
     <string name="player_shuffle_label">Shuffle</string>
     <string name="player_remove_on_end">Remove on end</string>
+    <string name="player_album_art">Album cover</string>
 </resources>

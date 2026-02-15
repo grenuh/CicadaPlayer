@@ -1,7 +1,10 @@
 package com.example.cicadaplayer.ui
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.view.View
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.viewinterop.AndroidViewBinding
 import com.example.cicadaplayer.R
 import com.example.cicadaplayer.databinding.ScreenPlayerBinding
@@ -17,6 +20,11 @@ fun PlayerScreen(
     onForget: () -> Unit,
     onDiscard: () -> Unit,
 ) {
+    val artBytes = state.playback.artworkBytes
+    val albumBitmap: Bitmap? = remember(artBytes) {
+        artBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+    }
+
     AndroidViewBinding(ScreenPlayerBinding::inflate) {
         // --- Track card ---
         val track = state.playback.currentTrack
@@ -35,6 +43,15 @@ fun PlayerScreen(
             trackCard.visibility = View.GONE
         }
 
+        // --- Album art ---
+        if (albumBitmap != null) {
+            albumArt.setImageBitmap(albumBitmap)
+            albumArt.visibility = View.VISIBLE
+        } else {
+            albumArt.setImageBitmap(null)
+            albumArt.visibility = View.GONE
+        }
+
         // --- Play / Pause button ---
         if (state.playback.isPlaying) {
             btnPlayPause.setImageResource(R.drawable.ic_pause_24)
@@ -50,7 +67,6 @@ fun PlayerScreen(
         btnNext.setOnClickListener { onSkipNext() }
 
         // --- Seek slider ---
-        // Clear listener before setting value to avoid feedback loop
         seekSlider.clearOnChangeListeners()
         val seekValue = if (state.playback.duration == 0L) 0f
             else state.playback.currentPosition.toFloat() / state.playback.duration

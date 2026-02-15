@@ -7,6 +7,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.LibraryMusic
@@ -21,21 +24,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 @Composable
 fun CicadaPlayerApp(viewModel: MainViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val navController = rememberNavController()
     val context = LocalContext.current
 
     val folderPicker = rememberLauncherForActivityResult(
@@ -67,7 +67,6 @@ fun CicadaPlayerApp(viewModel: MainViewModel) {
 
     MaterialTheme {
         CicadaNavigation(
-            navController = navController,
             state = state,
             onPlayPause = { viewModel.togglePlayback() },
             onSeek = { viewModel.seek(it) },
@@ -101,9 +100,9 @@ fun CicadaPlayerApp(viewModel: MainViewModel) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CicadaNavigation(
-    navController: NavHostController,
     state: PlayerUiState,
     onPlayPause: () -> Unit,
     onSeek: (Float) -> Unit,
@@ -127,17 +126,23 @@ fun CicadaNavigation(
         AppDestination("equalizer", Icons.Default.GraphicEq, "Equalizer"),
         AppDestination("settings", Icons.Default.Settings, "Settings"),
     )
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route ?: destinations.first().route
+
+    val pagerState = rememberPagerState(pageCount = { destinations.size })
+    val coroutineScope = rememberCoroutineScope()
+
+    // Navigate to player when a track is tapped
+    val onTrackTapWithNav: (Int) -> Unit = { index ->
+        onTrackTap(index)
+        coroutineScope.launch { pagerState.animateScrollToPage(0) }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        NavHost(
-            navController = navController,
-            startDestination = destinations.first().route,
-            modifier = Modifier.weight(1f)
-        ) {
-            composable("player") {
-                PlayerScreen(
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f),
+        ) { page ->
+            when (page) {
+                0 -> PlayerScreen(
                     state = state,
                     onPlayPause = onPlayPause,
                     onSeek = onSeek,
@@ -147,32 +152,19 @@ fun CicadaNavigation(
                     onForget = onForget,
                     onDiscard = onDiscard,
                 )
-            }
-            composable("library") {
-                LibraryScreen(
+                1 -> LibraryScreen(
                     state = state,
                     onRefreshLibrary = onRefreshLibrary,
-                    onTrackTap = { index ->
-                        onTrackTap(index)
-                        navController.navigate("player") {
-                            launchSingleTop = true
-                            restoreState = true
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                        }
-                    },
+                    onTrackTap = onTrackTapWithNav,
                     onShuffle = onShuffle,
                     removeOnEnd = state.settings.removeOnEnd,
                     onRemoveOnEndChange = onRemoveOnEndChange,
                 )
-            }
-            composable("equalizer") {
-                EqualizerScreen(
+                2 -> EqualizerScreen(
                     bands = state.settings.equalizerBands,
                     onEqualizerChange = onEqualizerChange
                 )
-            }
-            composable("settings") {
-                SettingsScreen(
+                3 -> SettingsScreen(
                     selectedFolders = state.settings.selectedFolders,
                     moveTargetDirectory = state.settings.moveTargetDirectory,
                     onFoldersChanged = onFoldersChanged,
@@ -183,16 +175,12 @@ fun CicadaNavigation(
         }
 
         NavigationBar {
-            destinations.forEach { destination ->
-                val selected = destination.route == currentRoute
+            destinations.forEachIndexed { index, destination ->
+                val selected = pagerState.currentPage == index
                 NavigationBarItem(
                     selected = selected,
                     onClick = {
-                        navController.navigate(destination.route) {
-                            launchSingleTop = true
-                            restoreState = true
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                        }
+                        coroutineScope.launch { pagerState.animateScrollToPage(index) }
                     },
                     icon = { Icon(destination.icon, contentDescription = destination.label) },
                     label = { Text(destination.label) },

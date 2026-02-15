@@ -39,6 +39,10 @@ class MusicPlayerController(context: Context) {
                 }
             }
 
+            override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+                _state.update { it.copy(artworkBytes = mediaMetadata.artworkData) }
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _state.update { it.copy(isPlaying = isPlaying) }
             }
