@@ -1,4 +1,21 @@
 <resources>
     <string name="app_name">Cicada Player</string>
     <string name="action_settings">Settings</string>
+
+    <!-- PlayerScreen -->
+    <string name="player_title">Cicada Player</string>
+    <string name="player_unknown_artist">Unknown artist</string>
+    <string name="player_play">Play</string>
+    <string name="player_pause">Pause</string>
+    <string name="player_previous">Previous</string>
+    <string name="player_next">Next</string>
+    <string name="player_volume">Volume</string>
+    <string name="player_time_format">%1$ds / %2$ds</string>
+    <string name="player_forget_key">F</string>
+    <string name="player_forget_label">Forget and skip</string>
+    <string name="player_discard_key">D</string>
+    <string name="player_discard_label">Move then skip</string>
+    <string name="player_shuffle_key">R</string>
+    <string name="player_shuffle_label">Shuffle</string>
+    <string name="player_remove_on_end">Remove on end</string>
 </resources>

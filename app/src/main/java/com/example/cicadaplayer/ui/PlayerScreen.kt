@@ -1,29 +1,10 @@
 package com.example.cicadaplayer.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.FastRewind
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
+import android.view.View
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.example.cicadaplayer.data.Track
+import androidx.compose.ui.viewinterop.AndroidViewBinding
+import com.example.cicadaplayer.R
+import com.example.cicadaplayer.databinding.ScreenPlayerBinding
 
 @Composable
 fun PlayerScreen(
@@ -39,109 +20,65 @@ fun PlayerScreen(
     removeOnEnd: Boolean,
     onRemoveOnEndChange: (Boolean) -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text("Cicada Player", style = MaterialTheme.typography.headlineMedium)
-        state.playback.currentTrack?.let { track ->
-            TrackCard(track = track, position = state.playback.currentPosition, duration = state.playback.duration)
+    AndroidViewBinding(ScreenPlayerBinding::inflate) {
+        // --- Track card ---
+        val track = state.playback.currentTrack
+        if (track != null) {
+            trackCard.visibility = View.VISIBLE
+            trackTitle.text = track.title
+            trackArtist.text = track.artist
+                ?: root.context.getString(R.string.player_unknown_artist)
+            trackAlbum.text = track.album ?: ""
+            trackTime.text = root.context.getString(
+                R.string.player_time_format,
+                state.playback.currentPosition / 1000,
+                state.playback.duration / 1000,
+            )
+        } else {
+            trackCard.visibility = View.GONE
         }
-        PlaybackControls(
-            isPlaying = state.playback.isPlaying,
-            position = state.playback.currentPosition,
-            duration = state.playback.duration,
-            onPlayPause = onPlayPause,
-            onSeek = onSeek,
-            onSkipNext = onSkipNext,
-            onSkipPrevious = onSkipPrevious,
-            volume = state.settings.playbackVolume,
-            onVolumeChange = onVolumeChange,
-        )
-        FdButtons(onForget = onForget, onDiscard = onDiscard, onShuffle = onShuffle)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("Remove on end")
-            Switch(checked = removeOnEnd, onCheckedChange = onRemoveOnEndChange)
-        }
-    }
-}
 
-@Composable
-fun TrackCard(track: Track, position: Long, duration: Long) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(track.title, style = MaterialTheme.typography.titleLarge)
-            Text(track.artist ?: "Unknown artist")
-            Text(track.album ?: "")
-            Text("${position / 1000}s / ${duration / 1000}s")
+        // --- Play / Pause button ---
+        if (state.playback.isPlaying) {
+            btnPlayPause.setImageResource(R.drawable.ic_pause_24)
+            btnPlayPause.contentDescription = root.context.getString(R.string.player_pause)
+        } else {
+            btnPlayPause.setImageResource(R.drawable.ic_play_arrow_24)
+            btnPlayPause.contentDescription = root.context.getString(R.string.player_play)
         }
-    }
-}
+        btnPlayPause.setOnClickListener { onPlayPause() }
 
-@Composable
-fun PlaybackControls(
-    isPlaying: Boolean,
-    position: Long,
-    duration: Long,
-    onPlayPause: () -> Unit,
-    onSeek: (Float) -> Unit,
-    onSkipNext: () -> Unit,
-    onSkipPrevious: () -> Unit,
-    volume: Float,
-    onVolumeChange: (Float) -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                IconButton(onClick = onSkipPrevious) { Icon(Icons.Default.FastRewind, contentDescription = "Previous") }
-                Button(onClick = onPlayPause) { Text(if (isPlaying) "Pause" else "Play") }
-                IconButton(onClick = onSkipNext) { Icon(Icons.Default.FastForward, contentDescription = "Next") }
-            }
-            Slider(value = if (duration == 0L) 0f else position.toFloat() / duration, onValueChange = onSeek)
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Volume")
-                Slider(value = volume, onValueChange = onVolumeChange)
-            }
-        }
-    }
-}
+        // --- Transport ---
+        btnPrevious.setOnClickListener { onSkipPrevious() }
+        btnNext.setOnClickListener { onSkipNext() }
 
-@Composable
-fun FdButtons(onForget: () -> Unit, onDiscard: () -> Unit, onShuffle: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(
-            onClick = onForget,
-            modifier = Modifier.weight(1f)
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("F", style = MaterialTheme.typography.headlineLarge)
-                Text("Forget and skip")
-            }
+        // --- Seek slider ---
+        // Clear listener before setting value to avoid feedback loop
+        seekSlider.clearOnChangeListeners()
+        val seekValue = if (state.playback.duration == 0L) 0f
+            else state.playback.currentPosition.toFloat() / state.playback.duration
+        seekSlider.value = seekValue.coerceIn(0f, 1f)
+        seekSlider.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) onSeek(value)
         }
-        Button(
-            onClick = onDiscard,
-            modifier = Modifier.weight(1f)
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("D", style = MaterialTheme.typography.headlineLarge)
-                Text("Move then skip")
-            }
+
+        // --- Volume slider ---
+        volumeSlider.clearOnChangeListeners()
+        volumeSlider.value = state.settings.playbackVolume.coerceIn(0f, 1f)
+        volumeSlider.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) onVolumeChange(value)
         }
-        Button(
-            onClick = onShuffle,
-            modifier = Modifier.weight(1f)
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("R", style = MaterialTheme.typography.headlineLarge)
-                Text("Shuffle")
-            }
-        }
+
+        // --- F / D buttons ---
+        btnForget.setOnClickListener { onForget() }
+        btnDiscard.setOnClickListener { onDiscard() }
+        btnShuffle.setOnClickListener { onShuffle() }
+
+                      // --- Remove on end switch ---
+         removeOnEndSwitch.setOnCheckedChangeListener(null)
+         removeOnEndSwitch.isChecked = removeOnEnd
+         removeOnEndSwitch.setOnCheckedChangeListener { _, isChecked ->
+                     onRemoveOnEndChange(isChecked)
+                 }
     }
 }
