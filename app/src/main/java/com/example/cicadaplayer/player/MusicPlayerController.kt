@@ -1,6 +1,7 @@
 package com.example.cicadaplayer.player
 
 import android.content.Context
+import android.media.AudioManager
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -24,13 +25,11 @@ class MusicPlayerController(context: Context) {
         )
         .build()
 
+    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private val equalizerController = EqualizerController(player.audioSessionId)
 
     private val _state = MutableStateFlow(PlaybackState())
     val state: StateFlow<PlaybackState> = _state
-
-    private val _artworkBytes = MutableStateFlow<ByteArray?>(null)
-    val artworkBytes: StateFlow<ByteArray?> = _artworkBytes
 
     init {
         player.addListener(object : Player.Listener {
@@ -40,10 +39,6 @@ class MusicPlayerController(context: Context) {
                     val track = state.currentPlaylist?.tracks?.getOrNull(index)
                     state.copy(currentTrack = track, queueIndex = index, duration = player.duration)
                 }
-            }
-
-            override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-                _artworkBytes.value = mediaMetadata.artworkData
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -140,8 +135,15 @@ class MusicPlayerController(context: Context) {
     }
 
     fun setVolume(volume: Float) {
-        player.volume = volume
-        _state.update { it.copy() }
+        val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        val index = (volume * maxVol).toInt().coerceIn(0, maxVol)
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, index, 0)
+    }
+
+    fun getVolume(): Float {
+        val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        return if (max > 0) current.toFloat() / max else 0f
     }
 
     fun skipNext() {

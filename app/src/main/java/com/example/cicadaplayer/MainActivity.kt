@@ -20,6 +20,7 @@ class MainActivity : ComponentActivity() {
             val context = LocalContext.current
             val viewModel = remember {
                 MainViewModel(
+                    appContext = context.applicationContext,
                     musicLibrary = MusicLibrary(context),
                     settingsRepository = SettingsRepository(context),
                     playerController = MusicPlayerController(context)

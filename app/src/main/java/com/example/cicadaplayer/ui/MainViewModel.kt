@@ -1,5 +1,8 @@
 package com.example.cicadaplayer.ui
 
+import android.content.Context
+import android.media.MediaMetadataRetriever
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cicadaplayer.data.MusicLibrary
@@ -10,17 +13,21 @@ import com.example.cicadaplayer.data.Playlist
 import com.example.cicadaplayer.data.SettingsRepository
 import com.example.cicadaplayer.data.Track
 import com.example.cicadaplayer.player.MusicPlayerController
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainViewModel(
+    private val appContext: Context,
     private val musicLibrary: MusicLibrary,
     private val settingsRepository: SettingsRepository,
     private val playerController: MusicPlayerController,
@@ -33,7 +40,8 @@ class MainViewModel(
     private val _toastMessages = MutableSharedFlow<String>()
     val toastMessages: SharedFlow<String> = _toastMessages
 
-    val artworkBytes: StateFlow<ByteArray?> = playerController.artworkBytes
+    private val _artworkBytes = MutableStateFlow<ByteArray?>(null)
+    val artworkBytes: StateFlow<ByteArray?> = _artworkBytes
 
     val uiState: StateFlow<PlayerUiState> = combine(
         settingsRepository.settings,
@@ -56,9 +64,6 @@ class MainViewModel(
             val initial = settingsRepository.settings.first()
             initial.equalizerBands.forEach { (freq, gain) ->
                 playerController.setEqualizerBand(freq, gain)
-            }
-            settingsRepository.settings.collect { settings ->
-                playerController.setVolume(settings.playbackVolume)
             }
         }
         viewModelScope.launch {
@@ -85,6 +90,18 @@ class MainViewModel(
                 }
                 previousTrack = current
             }
+        }
+        viewModelScope.launch {
+            _playbackState
+                .distinctUntilChangedBy { it.currentTrack?.uri }
+                .collect { playback ->
+                    val uri = playback.currentTrack?.uri
+                    _artworkBytes.value = if (uri != null) {
+                        loadEmbeddedArt(uri)
+                    } else {
+                        null
+                    }
+                }
         }
     }
 
@@ -127,10 +144,7 @@ class MainViewModel(
     }
 
     fun setVolume(volume: Float) {
-        viewModelScope.launch {
-            settingsRepository.updateSettings { it.copy(playbackVolume = volume) }
-            playerController.setVolume(volume)
-        }
+        playerController.setVolume(volume)
     }
 
     fun updateFolders(folders: List<String>) {
@@ -206,6 +220,15 @@ class MainViewModel(
 
     fun refreshProgress() {
         playerController.refreshProgress()
+    }
+
+    private suspend fun loadEmbeddedArt(uri: Uri): ByteArray? = withContext(Dispatchers.IO) {
+        runCatching {
+            MediaMetadataRetriever().use { mmr ->
+                mmr.setDataSource(appContext, uri)
+                mmr.embeddedPicture
+            }
+        }.getOrNull()
     }
 }
 

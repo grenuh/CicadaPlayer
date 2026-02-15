@@ -1,7 +1,9 @@
 package com.example.cicadaplayer.ui
 
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.view.MotionEvent
 import android.view.View
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -44,11 +46,14 @@ fun PlayerScreen(
         }
 
         // --- Album art ---
-        if (albumBitmap != null) {
-            albumArt.setImageBitmap(albumBitmap)
+        if (track != null) {
             albumArt.visibility = View.VISIBLE
+            if (albumBitmap != null) {
+                albumArt.setImageBitmap(albumBitmap)
+            } else {
+                albumArt.setImageResource(R.drawable.ic_album_placeholder)
+            }
         } else {
-            albumArt.setImageBitmap(null)
             albumArt.visibility = View.GONE
         }
 
@@ -67,6 +72,15 @@ fun PlayerScreen(
         btnNext.setOnClickListener { onSkipNext() }
 
         // --- Seek slider ---
+        val disallowIntercept = @SuppressLint("ClickableViewAccessibility")
+        View.OnTouchListener { v, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> v.parent.requestDisallowInterceptTouchEvent(true)
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> v.parent.requestDisallowInterceptTouchEvent(false)
+            }
+            false
+        }
+        seekSlider.setOnTouchListener(disallowIntercept)
         seekSlider.clearOnChangeListeners()
         val seekValue = if (state.playback.duration == 0L) 0f
             else state.playback.currentPosition.toFloat() / state.playback.duration
@@ -76,8 +90,13 @@ fun PlayerScreen(
         }
 
         // --- Volume slider ---
+        val audioManager = root.context.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
+        val currentVol = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+        val maxVol = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+        val systemVolume = if (maxVol > 0) currentVol.toFloat() / maxVol else 0f
+        volumeSlider.setOnTouchListener(disallowIntercept)
         volumeSlider.clearOnChangeListeners()
-        volumeSlider.value = state.settings.playbackVolume.coerceIn(0f, 1f)
+        volumeSlider.value = systemVolume.coerceIn(0f, 1f)
         volumeSlider.addOnChangeListener { _, value, fromUser ->
             if (fromUser) onVolumeChange(value)
         }
