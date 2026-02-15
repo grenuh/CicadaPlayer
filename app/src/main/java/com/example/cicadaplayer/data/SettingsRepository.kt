@@ -20,6 +20,7 @@ private val MOVE_TARGET_KEY = stringPreferencesKey("move_target")
 private val VOLUME_KEY = floatPreferencesKey("volume")
 private val EQ_KEY = stringPreferencesKey("equalizer")
 private val REMOVE_ON_END_KEY = booleanPreferencesKey("remove_on_end")
+private val THEME_COLOR_KEY = stringPreferencesKey("theme_color")
 private val PLAYLIST_KEY = stringPreferencesKey("playlist")
 
 class SettingsRepository(private val context: Context) {
@@ -42,6 +43,7 @@ class SettingsRepository(private val context: Context) {
                 ?.toMap() ?: PlayerSettings().equalizerBands,
             playbackVolume = prefs[VOLUME_KEY] ?: 0.5f,
             removeOnEnd = prefs[REMOVE_ON_END_KEY] ?: false,
+            themeColor = prefs[THEME_COLOR_KEY] ?: "green",
         )
     }
 
@@ -88,6 +90,7 @@ class SettingsRepository(private val context: Context) {
             prefs[VOLUME_KEY] = updated.playbackVolume
             prefs[EQ_KEY] = updated.equalizerBands.entries.joinToString(",") { "${it.key}:${it.value}" }
             prefs[REMOVE_ON_END_KEY] = updated.removeOnEnd
+            prefs[THEME_COLOR_KEY] = updated.themeColor
         }
     }
 }

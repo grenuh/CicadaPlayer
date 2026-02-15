@@ -66,7 +66,7 @@ fun CicadaPlayerApp(viewModel: MainViewModel) {
         viewModel.updateMoveTarget(uri.toString())
     }
 
-    MaterialTheme {
+    MaterialTheme(colorScheme = colorSchemeForKey(state.settings.themeColor)) {
         CicadaNavigation(
             state = state,
             artworkBytes = artworkBytes,
@@ -84,7 +84,8 @@ fun CicadaPlayerApp(viewModel: MainViewModel) {
             onPickMoveTarget = { moveTargetPicker.launch(null) },
             onShuffle = { viewModel.shufflePlaylist() },
             onTrackTap = { index -> viewModel.playTrackAt(index) },
-            onRemoveOnEndChange = { viewModel.toggleRemoveOnEnd(it) }
+            onRemoveOnEndChange = { viewModel.toggleRemoveOnEnd(it) },
+            onThemeColorChange = { viewModel.setThemeColor(it) }
         )
     }
 
@@ -122,6 +123,7 @@ fun CicadaNavigation(
     onShuffle: () -> Unit,
     onTrackTap: (Int) -> Unit,
     onRemoveOnEndChange: (Boolean) -> Unit,
+    onThemeColorChange: (String) -> Unit,
 ) {
     val destinations = listOf(
         AppDestination("player", Icons.Default.PlayArrow, "Player"),
@@ -173,7 +175,9 @@ fun CicadaNavigation(
                     moveTargetDirectory = state.settings.moveTargetDirectory,
                     onFoldersChanged = onFoldersChanged,
                     onPickFolder = onPickFolder,
-                    onPickMoveTarget = onPickMoveTarget
+                    onPickMoveTarget = onPickMoveTarget,
+                    currentThemeColor = state.settings.themeColor,
+                    onThemeColorChange = onThemeColorChange,
                 )
             }
         }

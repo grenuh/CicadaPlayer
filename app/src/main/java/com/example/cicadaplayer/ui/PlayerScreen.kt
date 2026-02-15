@@ -1,6 +1,5 @@
 package com.example.cicadaplayer.ui
 
-import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.view.MotionEvent
@@ -72,8 +71,8 @@ fun PlayerScreen(
         btnNext.setOnClickListener { onSkipNext() }
 
         // --- Seek slider ---
-        val disallowIntercept = @SuppressLint("ClickableViewAccessibility")
-        View.OnTouchListener { v, event ->
+        @Suppress("ClickableViewAccessibility")
+        val disallowIntercept = View.OnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> v.parent.requestDisallowInterceptTouchEvent(true)
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> v.parent.requestDisallowInterceptTouchEvent(false)

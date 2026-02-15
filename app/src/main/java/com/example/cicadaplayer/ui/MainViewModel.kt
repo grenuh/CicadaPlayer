@@ -147,6 +147,12 @@ class MainViewModel(
         playerController.setVolume(volume)
     }
 
+    fun setThemeColor(color: String) {
+        viewModelScope.launch {
+            settingsRepository.updateSettings { it.copy(themeColor = color) }
+        }
+    }
+
     fun updateFolders(folders: List<String>) {
         viewModelScope.launch {
             settingsRepository.updateSettings { it.copy(selectedFolders = folders) }
